@@ -23,10 +23,7 @@ typedef int32_t fixed;
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_native_dialog.h>
 
-// Include mappyal.h for Map functions and types
-#include "mappyal.h"
-
-// Define common types
+// Define common types first, before including mappyal.h, since mappyal.h uses these types
 // For Allegro 5 compatibility, we use a structure that can provide the required interface
 typedef struct {
     ALLEGRO_BITMAP *bitmap;
@@ -38,9 +35,8 @@ typedef struct {
     unsigned char **line;
 } BITMAP;
 
-// Map functions with C linkage for compatibility with mappyal.h
-extern "C" {
-} // extern "C"
+// Include mappyal.h for Map functions and types
+#include "mappyal.h"
 
 typedef ALLEGRO_FONT FONT;
 
@@ -81,6 +77,9 @@ extern ALLEGRO_TIMER *fps_timer;
 extern ALLEGRO_TIMER *second_timer;
 extern bool redraw;
 extern char allegro_error[256];
+
+// Global display variable
+extern ALLEGRO_DISPLAY *display;
 
 // Allegro 4 compatibility globals
 extern BITMAP *screen;
@@ -198,10 +197,27 @@ void unload_datafile_object(DATAFILE *datafile);
 #define FALSE 0
 #endif
 
+// Additional Allegro 4 compatibility structures and functions
+// File I/O structures (Allegro 4 compatibility)
+typedef struct {
+    ALLEGRO_FILE *file;
+} PACKFILE;
+
 // Additional Allegro 4 functions mapped to Allegro 5 equivalents
 void draw_rle_sprite(BITMAP *bmp, RLE_SPRITE *sprite, int x, int y);
 void stretch_sprite(BITMAP *bmp, BITMAP *sprite, int x, int y, int w, int h);
 void draw_sprite(BITMAP *bmp, BITMAP *sprite, int x, int y);
+
+// Allegro 4 compatibility functions
+void vline(BITMAP *bmp, int x, int y1, int y2, int color);
+void masked_blit(BITMAP *source, BITMAP *dest, int source_x, int source_y, int dest_x, int dest_y, int width, int height);
+void packfile_password(const char* password);
+PACKFILE *pack_fopen(const char *filename, const char *mode);
+int pack_fread(void *p, int size, int count, PACKFILE *f);
+int pack_fclose(PACKFILE *f);
+
+// Allegro 4 compatibility function for scancode conversion
+int scancode_to_ascii(int scancode);
 
 // For compatibility with direct member access, add getters
 
@@ -222,11 +238,7 @@ void vline(BITMAP *bmp, int x, int y1, int y2, int color);
 void masked_blit(BITMAP *source, BITMAP *dest, int source_x, int source_y, int dest_x, int dest_y, int width, int height);
 
 // Additional Allegro 4 compatibility structures and functions
-// File I/O structures (Allegro 4 compatibility)
-typedef struct {
-    ALLEGRO_FILE *file;
-} PACKFILE;
-
+// Color mapping structures (Allegro 4 compatibility)
 typedef struct {
     ALLEGRO_COLOR table[256][256];  // Simplified RGB mapping table
 } RGB_MAP;

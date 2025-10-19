@@ -36,7 +36,7 @@ else
     ALLEGRO_CFLAGS := $(shell allegro5-config --cflags)
 endif
 
-LDFLAGS = -llua5.4 -ltolua++ -lallegro_font $(ALLEGRO_LIBS)
+LDFLAGS = -llua5.4 -lallegro_font $(ALLEGRO_LIBS)
 CXXFLAGS += $(ALLEGRO_CFLAGS) -I/usr/include/lua5.4 -I./src
 CFLAGS += $(ALLEGRO_CFLAGS) -I/usr/include/lua5.4 -I./src
 
@@ -53,8 +53,7 @@ C_SOURCES := $(filter-out $(SRCDIR)/mappyal_compat.c, $(C_SOURCES))
 # Exclude mappyal.c as it's now compiled as C++ with allegro5_wrapper.cpp
 C_SOURCES := $(filter-out $(SRCDIR)/mappyal.c, $(C_SOURCES))
 
-# Add tolua.cpp explicitly since it's needed for compilation
-CPP_SOURCES += $(SRCDIR)/tolua.cpp
+# tolua.cpp is automatically included via wildcard search
 
 # Generate object files
 OBJECTS := $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(CPP_SOURCES)) \

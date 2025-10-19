@@ -550,6 +550,77 @@ const char* get_filename(const char* path) {
     return path;
 }
 
+// Allegro 4 compatibility function for scancode conversion
+int scancode_to_ascii(int scancode) {
+    // This is a simplified implementation that maps common scancodes to ASCII
+    // In a full implementation, this would need to be more comprehensive
+    switch (scancode) {
+        case 1: return 'a';
+        case 2: return 'b';
+        case 3: return 'c';
+        case 4: return 'd';
+        case 5: return 'e';
+        case 6: return 'f';
+        case 7: return 'g';
+        case 8: return 'h';
+        case 9: return 'i';
+        case 10: return 'j';
+        case 11: return 'k';
+        case 12: return 'l';
+        case 13: return 'm';
+        case 14: return 'n';
+        case 15: return 'o';
+        case 16: return 'p';
+        case 17: return 'q';
+        case 18: return 'r';
+        case 19: return 's';
+        case 20: return 't';
+        case 21: return 'u';
+        case 22: return 'v';
+        case 23: return 'w';
+        case 24: return 'x';
+        case 25: return 'y';
+        case 26: return 'z';
+        case 27: return '0';
+        case 28: return '1';
+        case 29: return '2';
+        case 30: return '3';
+        case 31: return '4';
+        case 32: return '5';
+        case 33: return '6';
+        case 34: return '7';
+        case 35: return '8';
+        case 36: return '9';
+        case 37: return '0';  // KEY_0_PAD
+        case 38: return '1';  // KEY_1_PAD
+        case 39: return '2';  // KEY_2_PAD
+        case 40: return '3';  // KEY_3_PAD
+        case 41: return '4';  // KEY_4_PAD
+        case 42: return '5';  // KEY_5_PAD
+        case 43: return '6';  // KEY_6_PAD
+        case 44: return '7';  // KEY_7_PAD
+        case 45: return '8';  // KEY_8_PAD
+        case 46: return '9';  // KEY_9_PAD
+        case 47: return '-';  // KEY_MINUS_PAD
+        case 48: return '+';  // KEY_PLUS_PAD
+        case 49: return '.';  // KEY_DEL_PAD
+        case 57: return ' ';  // KEY_SPACE
+        case 58: return '-';  // KEY_MINUS
+        case 59: return '=';  // KEY_EQUALS
+        case 60: return '[';  // KEY_OPENBRACE
+        case 61: return ']';  // KEY_CLOSEBRACE
+        case 62: return '\\\\'; // KEY_BACKSLASH
+        case 63: return '#';  // KEY_BACKSLASH2
+        case 64: return ';';  // KEY_COLON
+        case 65: return '\''; // KEY_QUOTE
+        case 66: return ',';  // KEY_COMMA
+        case 67: return '.';  // KEY_STOP
+        case 68: return '/';  // KEY_SLASH
+        case 69: return '`';  // KEY_TILDE
+        default: return 0;    // Unknown scancode
+    }
+}
+
 BITMAP* load_bitmap(const char* filename, RGB* pal) {
     (void)pal; // ignore palette for Allegro 5
     ALLEGRO_BITMAP *al_bitmap = al_load_bitmap(filename);
@@ -781,6 +852,69 @@ ALLEGRO_TIMER *second_timer = nullptr;
 bool redraw = false;
 char allegro_error[256] = {0};
 
+// Allegro 4 compatibility functions
+void vline(BITMAP *bmp, int x, int y1, int y2, int color) {
+    if (!bmp || !bmp->bitmap) return;
+    
+    ALLEGRO_BITMAP *old_target = al_get_target_bitmap();
+    al_set_target_bitmap(bmp->bitmap);
+    
+    // Convert Allegro 4 color to RGB (simplified)
+    unsigned char r = (color >> 16) & 0xFF;
+    unsigned char g = (color >> 8) & 0xFF;
+    unsigned char b = color & 0xFF;
+    
+    al_draw_line(x + 0.5f, y1 + 0.5f, x + 0.5f, y2 + 0.5f, al_map_rgb(r, g, b), 1.0f);
+    
+    al_set_target_bitmap(old_target);
+}
+
+void masked_blit(BITMAP *source, BITMAP *dest, int source_x, int source_y, int dest_x, int dest_y, int width, int height) {
+    if (!source || !source->bitmap || !dest || !dest->bitmap) return;
+    
+    ALLEGRO_BITMAP *old_target = al_get_target_bitmap();
+    al_set_target_bitmap(dest->bitmap);
+    
+    // In Allegro 5, we use al_draw_bitmap_region with a mask
+    al_draw_bitmap_region(source->bitmap, source_x, source_y, width, height, dest_x, dest_y, 0);
+    
+    al_set_target_bitmap(old_target);
+}
+
+void packfile_password(const char* password) {
+    // Allegro 5 doesn't use packfile passwords the same way
+    // This is a stub function for compatibility
+    (void)password; // avoid unused parameter warning
+}
+
+PACKFILE *pack_fopen(const char *filename, const char *mode) {
+    if (!filename || !mode) return nullptr;
+    
+    ALLEGRO_FILE *file = al_fopen(filename, mode);
+    if (!file) return nullptr;
+    
+    PACKFILE *packfile = new PACKFILE;
+    packfile->file = file;
+    
+    return packfile;
+}
+
+int pack_fread(void *p, int size, int count, PACKFILE *f) {
+    if (!p || !f || !f->file) return 0;
+    
+    size_t result = al_fread(f->file, p, size * count);
+    return result / size;
+}
+
+int pack_fclose(PACKFILE *f) {
+    if (!f || !f->file) return -1;
+    
+    int result = al_fclose(f->file);
+    delete f;
+    
+    return result;
+}
+
 // Allegro 4 compatibility globals
 BITMAP *screen = nullptr;  // To be set after display creation
 
@@ -932,21 +1066,13 @@ int pack_fwrite(const void *p, int size, PACKFILE *f) {
     return result;
 }
 
-int pack_fclose(PACKFILE *f) {
-    if (!f || !f->file) return -1;
-    
-    int result = al_fclose(f->file);
-    delete f;
-    return result;
-}
-
 // MappyAL global variables
 int maperror = 0;                    /* Set to a MER_ error if something wrong happens */
 short int mapwidth = 0, mapheight = 0, mapblockwidth = 0, mapblockheight = 0, mapdepth = 0;
 short int mapblockstrsize = 0, mapnumblockstr = 0, mapnumblockgfx = 0;
 short int mapaltdepth = 0, maptype = 0;
-char *mappt = nullptr;                    /* Pointer to current map data */
-char *maparraypt = nullptr;               /* Pointer to map data array */
+short int *mappt = nullptr;                    /* Pointer to current map data */
+short int **maparraypt = nullptr;               /* Pointer to map data array */
 char *mapcmappt = nullptr;                /* Pointer to colour map */
 char *mapblockgfxpt = nullptr;            /* Pointer to block graphics data */
 char *mapblockstrpt = nullptr;            /* Pointer to block structure data */
@@ -954,7 +1080,7 @@ ANISTR *mapanimstrpt = nullptr;           /* Pointer to animation structure data
 ANISTR *mapanimstrendpt = nullptr;        /* Pointer to animation structure data */
 short int **mapmappt = nullptr;           /* Pointer to map data matrix */
 short int ***mapmaparraypt = nullptr;     /* Pointer to map data matrix array */
-BITMAP **abmTiles = nullptr;              /* Array of bitmaps for tiles */
+void **abmTiles = nullptr;              /* Array of bitmaps for tiles */
 int mapblocksinvidmem = 0, mapblocksinsysmem = 0;
 int mapblockgapx = 0, mapblockgapy = 0;
 int mapblockstaggerx = 0, mapblockstaggery = 0;
@@ -981,9 +1107,8 @@ int MapGenerateYLookup(void) {
     return 0;
 }
 
-int MapInitAnims(void) {
+void MapInitAnims(void) {
     // Placeholder implementation
-    return 0;
 }
 
 int MapRelocate(void) {
@@ -1002,16 +1127,16 @@ int MapGetBlockID(int blid, int usernum) {
     return 0;
 }
 
-int MapGetBlockInPixels(int x, int y) {
+BLKSTR * MapGetBlockInPixels(int x, int y) {
     // Placeholder implementation
     (void)x; (void)y;
-    return 0;
+    return nullptr;
 }
 
-int MapGetBlock(int x, int y) {
+BLKSTR * MapGetBlock(int x, int y) {
     // Placeholder implementation
     (void)x; (void)y;
-    return 0;
+    return nullptr;
 }
 
 void MapSetBlockInPixels(int x, int y, int blid) {
@@ -1024,9 +1149,10 @@ void MapSetBlock(int x, int y, int blid) {
     (void)x; (void)y; (void)blid;
 }
 
-void MapChangeLayer(int laynum) {
+int MapChangeLayer(int laynum) {
     // Placeholder implementation
     (void)laynum;
+    return 0;
 }
 
 void MapDrawBG(BITMAP *bmp, int mapxo, int mapyo, int mapx, int mapy, int mapw, int maph) {
@@ -1079,6 +1205,35 @@ BITMAP *MapMakeParallaxBitmap(BITMAP *bmp, int flags) {
 void MapDrawParallax(BITMAP *bmp, BITMAP *pbmp, int xo, int yo, int x, int y, int w, int h) {
     // Simple implementation for now
     (void)bmp; (void)pbmp; (void)xo; (void)yo; (void)x; (void)y; (void)w; (void)h;
+}
+
+// Lua compatibility functions (Allegro 4 style)
+int lua_dostring(lua_State *L, const char *str) {
+    return luaL_dostring(L, str);
+}
+
+int lua_dobuffer(lua_State *L, const char *buff, size_t sz, const char *name) {
+    return luaL_loadbuffer(L, buff, sz, name) || lua_pcall(L, 0, LUA_MULTRET, 0);
+}
+
+int lua_getgcthreshold(lua_State *L) {
+    // In Lua 5, garbage collection threshold is not directly accessible
+    // Return a default value for compatibility
+    (void)L; // avoid unused parameter warning
+    return 0;
+}
+
+int lua_getgccount(lua_State *L) {
+    // In Lua 5, we can use lua_gc to get the count
+    // Return a default value for compatibility
+    (void)L; // avoid unused parameter warning
+    return 0;
+}
+
+void lua_setgcthreshold(lua_State *L, int limit) {
+    // In Lua 5, garbage collection is handled differently
+    // This is a simplified implementation for compatibility
+    (void)L; (void)limit; // avoid unused parameter warnings
 }
 
 // End of file
