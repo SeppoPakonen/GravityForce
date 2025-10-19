@@ -114,7 +114,7 @@ int gsMain::init()
   script->load_game_config();
 
   // set keyboard layout
-  char my_layout[2];
+  char my_layout[3];
   switch (globals->language)
   {
     case LANG_DE :

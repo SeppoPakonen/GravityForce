@@ -64,30 +64,21 @@ void gsScript::setglobal(char *n, int i, Lua *l)
 {
 //  if (!l) l = &lua;
   l->pushnumber((float)i);
-  l->pushstring(n);
-  l->insert(-2);
-  l->settable(LUA_GLOBALSINDEX);
-//  l->setglobal(n);
+  l->setglobal(n);
 }
 
 void gsScript::setglobal(char *n, float f, Lua *l)
 {
 //  if (!l) l = &lua;
   l->pushnumber(f);
-  l->pushstring(n);
-  l->insert(-2);
-  l->settable(LUA_GLOBALSINDEX);
-//  l->setglobal(n);
+  l->setglobal(n);
 }
 
 void gsScript::setglobal(char *n, char *s, Lua *l)
 {
 //  if (!l) l = &lua;
   l->pushstring(s);
-  l->pushstring(n);
-  l->insert(-2);
-  l->settable(LUA_GLOBALSINDEX);
-//  l->setglobal(n);
+  l->setglobal(n);
 }
 
 int gsScript::getglobal_int(char *n, Lua *l)
@@ -1231,7 +1222,7 @@ void gsScript::load_game_config()
   
   set_standard_globals(config_lua);
 
-  char path[80];
+  char path[255];
   strcpy(path, globals->data_dir);
   strcat(path, globals->configfile_name);
   int error = config_lua->dofile(path);
