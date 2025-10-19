@@ -1213,10 +1213,22 @@ void gsScript::load_game_config()
 {
   Lua *config_lua = new Lua;
   
-  // clear globals
-//  config_lua->newtable();
-//  config_lua->replace(LUA_GLOBALSINDEX);
-
+  // clear globals and initialize standard globals
+  config_lua->newtable();
+  config_lua->replace(LUA_GLOBALSINDEX);
+  
+  // Initialize Lua with base libraries required for standard operations
+  config_lua->open_base();
+  config_lua->open_math();
+  config_lua->open_string();
+  config_lua->open_table();
+  
+  // clear stack before setting up globals
+  config_lua->settop(0);
+  
+  // Initialize tolua to register types required by the game
+  tolua_gslua_open(config_lua->get_state());
+  
   set_standard_globals(config_lua);
 
   char path[80];
