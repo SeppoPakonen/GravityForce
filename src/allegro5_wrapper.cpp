@@ -6,6 +6,7 @@
 #include "allegro5_wrapper.h"
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_font.h>
+#include <allegro5/allegro_primitives.h>
 #include <cstring>
 #include <cstdio>
 #include <sys/stat.h>
@@ -81,6 +82,11 @@ int allegro_init() {
     
     al_install_keyboard();
     al_install_mouse();
+    
+    // Initialize the primitives addon which is required for drawing primitives
+    if (!al_init_primitives_addon()) {
+        return -1;
+    }
     
     // Timer system is typically available by default in Allegro 5
     // No explicit installation needed like Allegro 4
