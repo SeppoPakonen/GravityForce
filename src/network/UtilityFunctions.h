@@ -29,7 +29,7 @@ inline char* strupr(char* str) {
 
 // Pack file functions (stubbed)
 inline PACKFILE* pack_fopen(const char* filename, const char* mode) { return nullptr; }
-inline int pack_fread(void* ptr, size_t size, size_t count, PACKFILE* stream) { return 0; }
+inline int pack_fread(void* ptr, int size, int count, PACKFILE* stream) { return 0; }
 inline int pack_fclose(PACKFILE* stream) { return 0; }
 
 #endif

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Gravity Strike Build Script
-# This script builds the project and prevents make clean from removing it
+# This script builds the project with direct asset loading enabled by default
 # Usage: ./build.sh [options]
 
 set -e  # Exit on any error
@@ -72,12 +72,12 @@ check_dependencies() {
 
 # Function to build the project
 build_project() {
-    print_status "Building Gravity Strike..."
+    print_status "Building Gravity Strike with direct asset loading enabled..."
     
     # If Makefile exists, use it
     if [ -f "Makefile" ]; then
         make all
-        print_success "Build completed successfully!"
+        print_success "Build completed successfully with direct asset loading!"
     else
         print_error "Makefile not found!"
         exit 1

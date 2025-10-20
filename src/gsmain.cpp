@@ -41,6 +41,10 @@
 #include "contrib/md5class.h"
 #include "gsscript.h"
 
+// Import verbose flags from main.cpp
+extern int verbose;
+extern int extra_verbose;
+
 gsGlobals   *globals    = NULL;
 gsError     *errors     = NULL;
 gsLanguage  *language   = NULL;
@@ -94,21 +98,33 @@ gsMain::~gsMain()
 
 int gsMain::init()
 {
+  if (verbose) {
+    printf("Initializing globals and errors...\n");
+  }
   globals = new gsGlobals;
   errors  = new gsError;
 
   set_uformat(U_ASCII);
 
+  if (verbose) {
+    printf("Initializing Allegro library...\n");
+  }
   errors->log(2, "init", "allegro");
   allegro_init();
   errors->log(2, "init", "library version", al_get_allegro_version());
 
   set_window_title("Gravity Strike");
 
+  if (verbose) {
+    printf("Setting up scripting system...\n");
+  }
   // scripting
   errors->log(2, "init", "scripting");
   script = new gsScript;
 
+  if (verbose) {
+    printf("Loading game configuration...\n");
+  }
   // game config
   errors->log(2, "init", "loading game config");
   script->load_game_config();
@@ -135,13 +151,21 @@ int gsMain::init()
 
   errors->log(2, "init", "setting keyboard layout", my_layout);
 
-
+  if (verbose) {
+    printf("Initializing keyboard...\n");
+  }
   errors->log(2, "init", "keyboard");
   install_keyboard();
 
+  if (verbose) {
+    printf("Reading level files...\n");
+  }
   // level files and crc
   script->read_level_files(1);
 
+  if (verbose) {
+    printf("Performing CRC checks...\n");
+  }
   errors->log(2, "init", "doing crc checks");
   hiscore = new gsHiscore();
   if (MAKE_CRC_FILE) hiscore->make_crc_file();
@@ -156,18 +180,27 @@ int gsMain::init()
     }
   }
 
+  if (verbose) {
+    printf("Initializing mouse...\n");
+  }
   errors->log(2, "init", "mouse");
   if (install_mouse() <= 0)
   {
-    allegro_message("ERROR: No mouse detected.\nPlease install a mouse driver!\n");
-    errors->log(2, "ERROR", "no mouse detected!");
-    return 1;
+    if (verbose) {
+      printf("WARNING: No mouse detected. Running in mouseless environment.\n");
+    }
+    errors->log(2, "WARNING", "no mouse detected, continuing without mouse support!");
+    // Continue execution instead of failing - some environments (remote, headless) may not have a mouse
+    // Note: Allegro might handle mouse absence gracefully in the game itself
   }
 
   #ifdef ALLEGRO_WINDOWS
     set_mouse_speed(4,4);
   #endif
 
+  if (verbose) {
+    printf("Initializing joystick...\n");
+  }
   errors->log(2, "init", "trying to initialize joystick");
   #ifdef ALLEGRO_DOS
     if (install_joystick(JOY_TYPE_4BUTTON) == 0) globals->joystick_installed = 1; else install_joystick(JOY_TYPE_NONE);
@@ -177,6 +210,9 @@ int gsMain::init()
   if (globals->joystick_installed) errors->log(2, "init", "joystick(s) found!", 2);
   else errors->log(2, "init", "sorry, no joystick available");
 
+  if (verbose) {
+    printf("Initializing timer...\n");
+  }
   errors->log(2, "init", "timer");
   install_timer();
 
@@ -193,39 +229,403 @@ int gsMain::init()
   install_int_ex(game_timer,BPS_TO_TIMER(60));
   install_int_ex(gs_second_timer,SECS_TO_TIMER(1));
 
+  if (verbose) {
+    printf("Loading language files...\n");
+  }
   // language files
   errors->log(2, "init", "language files");
   language = new gsLanguage;
   script->load_text();
 
+  if (verbose) {
+    printf("Initializing clear list...\n");
+  }
   // clearlist
   errors->log(2, "init", "clear list");
   clearlist = new gsClear;
 
+  if (verbose) {
+    printf("Initializing sound system...\n");
+  }
   errors->log(2, "init", "sound");
   gsound = new gsSound();
 
+  if (verbose) {
+    printf("Initializing network system...\n");
+  }
   // network
   errors->log(2, "init", "networking");
   net = new gsNetwork();
 
+  if (verbose) {
+    printf("Loading data files...\n");
+  }
   // init datafiles
-  char tmp_dir[255];
   errors->log(2, "init", "datafiles");
+  if (verbose) {
+    printf("Loading data files from directory: '%s'\n", globals->data_dir);
+    printf("Menu datafile name: '%s'\n", globals->menu_datafile_name);
+    printf("Game datafile name: '%s'\n", globals->datafile_name);
+    printf("Ship datafile name: '%s'\n", globals->shipdata_name);
+    printf("Font datafile name: '%s'\n", globals->fontdata_name);
+  }
+  
   packfile_password(globals->pwd);
-  strcpy(tmp_dir, globals->data_dir);
-  globals->menudat = load_datafile((char*)strcat(tmp_dir, globals->menu_datafile_name));
-  strcpy(tmp_dir, globals->data_dir);
-  globals->gamedat = load_datafile((char*)strcat(tmp_dir, globals->datafile_name));
-  strcpy(tmp_dir, globals->data_dir);
-  globals->shipdat = load_datafile((char*)strcat(tmp_dir, globals->shipdata_name));
-  strcpy(tmp_dir, globals->data_dir);
-  globals->fontdat = load_datafile((char*)strcat(tmp_dir, globals->fontdata_name));
+  
+  if (verbose) {
+    printf("Data loading: Password set to '%s'\n", globals->pwd);
+  }
+  
+  // Function to get absolute path of executable directory and look for data files
+  // First, try the default paths from the globals
+  char full_path[255];
+  char original_path[255];
+  
+  // Try to load menu datafile
+  strcpy(original_path, globals->data_dir);
+  strcat(original_path, globals->menu_datafile_name);
+  strcpy(full_path, original_path);
+  
+  if (verbose) {
+    printf("Attempting to load menu datafile: '%s'\n", full_path);
+    printf("Data file name: '%s'\n", globals->menu_datafile_name);
+    printf("Data directory: '%s'\n", globals->data_dir);
+  }
+  
+  // First, try to check if file exists using basic file operations
+  FILE *test_file = fopen(full_path, "rb");
+  if (test_file) {
+    if (verbose) {
+      printf("File '%s' exists and is readable, size: ", full_path);
+      fseek(test_file, 0, SEEK_END);
+      long size = ftell(test_file);
+      printf("%ld bytes\n", size);
+      fclose(test_file);
+    }
+  } else {
+    if (verbose) {
+      printf("ERROR: File '%s' does not exist or is not readable\n", full_path);
+    }
+  }
+  
+  // Try to load with original path first
+  globals->menudat = load_datafile(full_path);
+  if (!globals->menudat) {
+    if (verbose) {
+      printf("Primary path load_datafile() failed for menu datafile\n");
+      printf("Trying explicit './dat/' path: './dat/%s'\n", globals->menu_datafile_name);
+    }
+    // If it failed, try explicit './dat/' path
+    sprintf(full_path, "./dat/%s", globals->menu_datafile_name);
+    test_file = fopen(full_path, "rb");
+    if (test_file) {
+      if (verbose) {
+        printf("File '%s' exists and is readable for menu datafile, size: ", full_path);
+        fseek(test_file, 0, SEEK_END);
+        long size = ftell(test_file);
+        printf("%ld bytes\n", size);
+        fclose(test_file);
+      }
+    } else {
+      if (verbose) {
+        printf("ERROR: File '%s' does not exist or is not readable for menu datafile\n", full_path);
+      }
+    }
+    globals->menudat = load_datafile(full_path);
+  }
+  
+  if (!globals->menudat && verbose) {
+    printf("ERROR: Can't load menu datafile '%s'\n", full_path);
+  }
+  
+  // Try to load game datafile with same detailed debugging
+  strcpy(original_path, globals->data_dir);
+  strcat(original_path, globals->datafile_name);
+  if (verbose) {
+    printf("Attempting to load game datafile: '%s'\n", original_path);
+  }
+  
+  test_file = fopen(original_path, "rb");
+  if (test_file) {
+    if (verbose) {
+      printf("File '%s' exists and is readable, size: ", original_path);
+      fseek(test_file, 0, SEEK_END);
+      long size = ftell(test_file);
+      printf("%ld bytes\n", size);
+      fclose(test_file);
+    }
+  } else {
+    if (verbose) {
+      printf("ERROR: File '%s' does not exist or is not readable\n", original_path);
+    }
+  }
+  
+  globals->gamedat = load_datafile(original_path);
+  if (!globals->gamedat) {
+    if (verbose) {
+      printf("Primary path load_datafile() failed for game datafile\n");
+      printf("Trying explicit './dat/' path: './dat/%s'\n", globals->datafile_name);
+    }
+    sprintf(full_path, "./dat/%s", globals->datafile_name);
+    test_file = fopen(full_path, "rb");
+    if (test_file) {
+      if (verbose) {
+        printf("File '%s' exists and is readable for game datafile, size: ", full_path);
+        fseek(test_file, 0, SEEK_END);
+        long size = ftell(test_file);
+        printf("%ld bytes\n", size);
+        fclose(test_file);
+      }
+    } else {
+      if (verbose) {
+        printf("ERROR: File '%s' does not exist or is not readable for game datafile\n", full_path);
+      }
+    }
+    globals->gamedat = load_datafile(full_path);
+  }
+  
+  if (!globals->gamedat && verbose) {
+    printf("ERROR: Can't load game datafile\n");
+  }
+  
+  // Try to load ship datafile with same detailed debugging
+  strcpy(original_path, globals->data_dir);
+  strcat(original_path, globals->shipdata_name);
+  if (verbose) {
+    printf("Attempting to load ship datafile: '%s'\n", original_path);
+  }
+  
+  test_file = fopen(original_path, "rb");
+  if (test_file) {
+    if (verbose) {
+      printf("File '%s' exists and is readable, size: ", original_path);
+      fseek(test_file, 0, SEEK_END);
+      long size = ftell(test_file);
+      printf("%ld bytes\n", size);
+      fclose(test_file);
+    }
+  } else {
+    if (verbose) {
+      printf("ERROR: File '%s' does not exist or is not readable\n", original_path);
+    }
+  }
+  
+  globals->shipdat = load_datafile(original_path);
+  if (!globals->shipdat) {
+    if (verbose) {
+      printf("Primary path load_datafile() failed for ship datafile\n");
+      printf("Trying explicit './dat/' path: './dat/%s'\n", globals->shipdata_name);
+    }
+    sprintf(full_path, "./dat/%s", globals->shipdata_name);
+    test_file = fopen(full_path, "rb");
+    if (test_file) {
+      if (verbose) {
+        printf("File '%s' exists and is readable for ship datafile, size: ", full_path);
+        fseek(test_file, 0, SEEK_END);
+        long size = ftell(test_file);
+        printf("%ld bytes\n", size);
+        fclose(test_file);
+      }
+    } else {
+      if (verbose) {
+        printf("ERROR: File '%s' does not exist or is not readable for ship datafile\n", full_path);
+      }
+    }
+    globals->shipdat = load_datafile(full_path);
+  }
+  
+  if (!globals->shipdat && verbose) {
+    printf("ERROR: Can't load ship datafile\n");
+  }
+  
+  // Try to load font datafile with same detailed debugging
+  strcpy(original_path, globals->data_dir);
+  strcat(original_path, globals->fontdata_name);
+  if (verbose) {
+    printf("Attempting to load font datafile: '%s'\n", original_path);
+  }
+  
+  test_file = fopen(original_path, "rb");
+  if (test_file) {
+    if (verbose) {
+      printf("File '%s' exists and is readable, size: ", original_path);
+      fseek(test_file, 0, SEEK_END);
+      long size = ftell(test_file);
+      printf("%ld bytes\n", size);
+      fclose(test_file);
+    }
+  } else {
+    if (verbose) {
+      printf("ERROR: File '%s' does not exist or is not readable\n", original_path);
+    }
+  }
+  
+  globals->fontdat = load_datafile(original_path);
+  if (!globals->fontdat) {
+    if (verbose) {
+      printf("Primary path load_datafile() failed for font datafile\n");
+      printf("Trying explicit './dat/' path: './dat/%s'\n", globals->fontdata_name);
+    }
+    sprintf(full_path, "./dat/%s", globals->fontdata_name);
+    test_file = fopen(full_path, "rb");
+    if (test_file) {
+      if (verbose) {
+        printf("File '%s' exists and is readable for font datafile, size: ", full_path);
+        fseek(test_file, 0, SEEK_END);
+        long size = ftell(test_file);
+        printf("%ld bytes\n", size);
+        fclose(test_file);
+      }
+    } else {
+      if (verbose) {
+        printf("ERROR: File '%s' does not exist or is not readable for font datafile\n", full_path);
+      }
+    }
+    globals->fontdat = load_datafile(full_path);
+  }
+  
+  if (!globals->fontdat && verbose) {
+    printf("ERROR: Can't load font datafile\n");
+  }
+  
   packfile_password(NULL);
-  if (!globals->menudat) { allegro_message("Can't load menu datafile!"); return 1; }
-  if (!globals->gamedat) { allegro_message("Can't load game datafile!"); return 1; }
-  if (!globals->shipdat) { allegro_message("Can't load ship datafile!"); return 1; }
-  if (!globals->fontdat) { allegro_message("Can't load font datafile!"); return 1; }
+  
+  // Extra verbose output: dump data structure information
+  if (extra_verbose) {
+    printf("=== EXTRA VERBOSE DUMP (before data file validation) ===\n");
+    
+    if (globals->menudat) {
+      printf("MENU DATAFILE CONTENTS:\n");
+      // Try to determine the number of objects in a safer way
+      int count = 0;
+      DATAFILE* df = globals->menudat;
+      while (df && df->type != 0) {  // Use 0 as end marker instead of DAT_END
+        count++;
+        // Safety check to avoid infinite loops
+        if (count > 1000) break;
+        df++;
+      }
+      printf("- Number of objects in menudat: %d\n", count);
+      
+      // Print first few entries
+      for (int i = 0; i < count && i < 10; i++) {
+        printf("  [%d] type=0x%x, size=%ld", i, 
+               globals->menudat[i].type, 
+               (long)globals->menudat[i].size);
+        printf(", dat=0x%p", globals->menudat[i].dat);
+        printf("\n");
+      }
+    } else {
+      printf("MENU DATAFILE: NULL (not loaded)\n");
+    }
+    
+    if (globals->gamedat) {
+      printf("\nGAME DATAFILE CONTENTS:\n");
+      // Try to determine the number of objects in a safer way
+      int count = 0;
+      DATAFILE* df = globals->gamedat;
+      while (df && df->type != 0) {  // Use 0 as end marker instead of DAT_END
+        count++;
+        // Safety check to avoid infinite loops
+        if (count > 1000) break;
+        df++;
+      }
+      printf("- Number of objects in gamedat: %d\n", count);
+      
+      // Print first few entries
+      for (int i = 0; i < count && i < 10; i++) {
+        printf("  [%d] type=0x%x, size=%ld", i, 
+               globals->gamedat[i].type, 
+               (long)globals->gamedat[i].size);
+        printf(", dat=0x%p", globals->gamedat[i].dat);
+        printf("\n");
+      }
+    } else {
+      printf("GAME DATAFILE: NULL (not loaded)\n");
+    }
+    
+    if (globals->shipdat) {
+      printf("\nSHIP DATAFILE CONTENTS:\n");
+      // Try to determine the number of objects in a safer way
+      int count = 0;
+      DATAFILE* df = globals->shipdat;
+      while (df && df->type != 0) {  // Use 0 as end marker instead of DAT_END
+        count++;
+        // Safety check to avoid infinite loops
+        if (count > 1000) break;
+        df++;
+      }
+      printf("- Number of objects in shipdat: %d\n", count);
+      
+      // Print first few entries
+      for (int i = 0; i < count && i < 10; i++) {
+        printf("  [%d] type=0x%x, size=%ld", i, 
+               globals->shipdat[i].type, 
+               (long)globals->shipdat[i].size);
+        printf(", dat=0x%p", globals->shipdat[i].dat);
+        printf("\n");
+      }
+    } else {
+      printf("SHIP DATAFILE: NULL (not loaded)\n");
+    }
+    
+    if (globals->fontdat) {
+      printf("\nFONT DATAFILE CONTENTS:\n");
+      // Try to determine the number of objects in a safer way
+      int count = 0;
+      DATAFILE* df = globals->fontdat;
+      while (df && df->type != 0) {  // Use 0 as end marker instead of DAT_END
+        count++;
+        // Safety check to avoid infinite loops
+        if (count > 1000) break;
+        df++;
+      }
+      printf("- Number of objects in fontdat: %d\n", count);
+      
+      // Print first few entries
+      for (int i = 0; i < count && i < 10; i++) {
+        printf("  [%d] type=0x%x, size=%ld", i, 
+               globals->fontdat[i].type, 
+               (long)globals->fontdat[i].size);
+        printf(", dat=0x%p", globals->fontdat[i].dat);
+        printf("\n");
+      }
+    } else {
+      printf("FONT DATAFILE: NULL (not loaded)\n");
+    }
+    
+    printf("=== END EXTRA VERBOSE DUMP ===\n");
+  }
+  
+  // Check if data files loaded successfully
+  if (!globals->menudat) { 
+    if (verbose) {
+      printf("ERROR: Can't load menu datafile!\n");
+    }
+    allegro_message("Can't load menu datafile!"); 
+    return 1; 
+  }
+  if (!globals->gamedat) { 
+    if (verbose) {
+      printf("ERROR: Can't load game datafile!\n");
+    }
+    allegro_message("Can't load game datafile!"); 
+    return 1; 
+  }
+  if (!globals->shipdat) { 
+    if (verbose) {
+      printf("ERROR: Can't load ship datafile!\n");
+    }
+    allegro_message("Can't load ship datafile!"); 
+    return 1; 
+  }
+  if (!globals->fontdat) { 
+    if (verbose) {
+      printf("ERROR: Can't load font datafile!\n");
+    }
+    allegro_message("Can't load font datafile!"); 
+    return 1; 
+  }
 
   // delete temporary ships (from previous crashes while network gaminng :)
 //  net->delete_tmp_ship_files();
@@ -233,21 +633,36 @@ int gsMain::init()
   // init graphics
   extern int gfxdriver;
 
+  if (verbose) {
+    printf("Initializing graphics mode...\n");
+  }
   errors->log(2, "init", "gfx mode");
   if (set_gfx_mode(gfxdriver, globals->menu_resolution_x, globals->menu_resolution_y, 0, 0))
   {
+    if (verbose) {
+      printf("ERROR: Failed to set graphics mode: %s\n", allegro_error);
+    }
     errors->log(0, "FATAL ERROR", allegro_error);
     return 1;
   }
   set_display_switch_mode(SWITCH_BACKGROUND);
 
+  if (verbose) {
+    printf("Creating map images...\n");
+  }
   errors->log(2, "init", "looking for map images to be created...");
   create_map_images();
 
+  if (verbose) {
+    printf("Initializing replay system...\n");
+  }
   // TEMP
   replay = new gsReplay();
   // TEMP
 
+  if (verbose) {
+    printf("Initialization completed successfully.\n");
+  }
   return 0;
 }
 

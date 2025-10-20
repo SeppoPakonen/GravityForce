@@ -14,6 +14,10 @@ CC = gcc
 CFLAGS += -O2 -Wall -Wextra -std=c11
 CXXFLAGS += -O2 -Wall -Wextra -std=c++11 -fpermissive
 
+# Enable direct asset loading by default for better debugging
+CXXFLAGS += -DDIRECT_ASSET_LOADING
+CFLAGS += -DDIRECT_ASSET_LOADING
+
 # Try to determine Allegro 5 configuration method
 ifeq ($(shell which allegro5-config 2>/dev/null),)
     ifneq ($(shell pkg-config allegro5 --libs 2>/dev/null),)

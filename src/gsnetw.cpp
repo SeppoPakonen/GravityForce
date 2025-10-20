@@ -426,7 +426,7 @@ void gsNetwork::create_shipfile_packet(BitStream *p, PlayerID player_id)
     {
       packfile_password(globals->pwd);
       PACKFILE *shp = pack_fopen(shippath, "rp");
-      pack_fread(shipbuf, sizeof(char), shipsize, shp);
+      pack_fread(shipbuf, sizeof(char), (int)shipsize, shp);
       pack_fclose(shp);
       packfile_password(NULL);
     }

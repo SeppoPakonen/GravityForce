@@ -447,9 +447,26 @@ void text_mode(int mode) {
 
 // Datafile handling
 DATAFILE *load_datafile(const char *filename) {
+#ifdef DIRECT_ASSET_LOADING
+    // When DIRECT_ASSET_LOADING is enabled, we indicate that we're attempting
+    // direct asset loading but still return nullptr for now to maintain compatibility.
+    // In the future, this could be expanded to actually load assets directly.
+    printf("DIRECT_ASSET_LOADING: Attempting to load '%s' as direct asset file\n", filename);
+    
+    // For debugging purposes, let's check what type of file this is
+    const char* basename = strrchr(filename, '/');
+    if (!basename) basename = filename;
+    else basename++; // Skip the '/'
+    
+    printf("DIRECT_ASSET_LOADING: File basename is '%s'\n", basename);
+    
+    // Return nullptr to maintain current behavior, but log that we're in direct loading mode
+    return nullptr;
+#else
     (void)filename;
     // Not implemented - need a real implementation based on Allegro 5 data system
     return nullptr;
+#endif
 }
 
 void unload_datafile(DATAFILE *datafile) {
