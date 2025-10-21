@@ -12,6 +12,8 @@
 #include <string.h>
 #include <stdio.h>
 #include "gsglob.h"
+
+int mainloop_verbose = 0;  // Added mainloop verbose flag for -v3
 #include "gshelper.h"
 #include "gslng.h"
 #include "gserror.h"

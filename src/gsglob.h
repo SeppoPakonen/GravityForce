@@ -331,6 +331,7 @@ class gsGlobals
 
 
 extern gsGlobals *globals;
+extern int mainloop_verbose;  // Added for -v3 flag
 
 #endif
 

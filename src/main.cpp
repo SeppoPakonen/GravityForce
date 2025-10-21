@@ -13,12 +13,16 @@ int noclip = 0;
 int nocrcmessage = 0;
 int verbose = 0;  // Added verbose flag
 int extra_verbose = 0;  // Added extra verbose flag
+// mainloop_verbose is defined in gsglob.cpp
+
 
 void parse_cmd_line(int argc, char *argv[])
 {
+  printf("Parsing command line arguments: argc=%d\n", argc);
   if (argc > 1)
   for (int n=1; n < argc; n++)
   {
+    printf("Argument %d: %s\n", n, argv[n]);
     #ifdef ALLEGRO_WINDOWS
     if (!strcmp(argv[n], "/window"))
         gfxdriver = GFX_DIRECTX_WIN;
@@ -35,8 +39,11 @@ void parse_cmd_line(int argc, char *argv[])
 
     if (!strcmp(argv[n], "-v") || !strcmp(argv[n], "--verbose"))
       verbose = 1;
-    else if (!strcmp(argv[n], "-v2") || !strcmp(argv[n], "--extra-verbose"))
+    if (!strcmp(argv[n], "-v2") || !strcmp(argv[n], "--extra-verbose"))
       extra_verbose = 1;
+    if (!strcmp(argv[n], "-v3") || !strcmp(argv[n], "--mainloop-verbose")) {
+      mainloop_verbose = 1;
+    }
 
     #ifdef ALLEGRO_LINUX
     if (!strcmp(argv[n], "/xdga2"))
@@ -57,16 +64,26 @@ void parse_cmd_line(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
+  printf("Gravity Strike starting...\n");
+  fflush(stdout);  // Make sure output is flushed immediately
   parse_cmd_line(argc, argv);
 
   if (verbose) {
     printf("Gravity Strike starting with verbose output...\n");
     printf("Attempting to initialize game...\n");
   }
+  
+  if (mainloop_verbose) {
+    printf("Main loop verbose output enabled (-v3 flag)\n");
+  }
 
   // main game object
+  printf("Creating gsMain object...\n");
+  fflush(stdout);
   gsMain *gs_main = new gsMain();
 
+  printf("Initializing game...\n");
+  fflush(stdout);
   int init_result = gs_main->init();
   
   if (verbose) {
@@ -78,7 +95,16 @@ int main(int argc, char *argv[])
   }
 
   if (init_result == 0)  // Fixed: only play if init succeeds (returns 0)
+  {
+    printf("Starting game loop...\n");
+    fflush(stdout);
     gs_main->play();
+  }
+  else
+  {
+    printf("Game initialization failed with error code: %d\n", init_result);
+    fflush(stdout);
+  }
 
   if (verbose) {
     printf("Game finished, cleaning up...\n");

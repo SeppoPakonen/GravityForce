@@ -883,32 +883,105 @@ void gsMain::do_network_level()
 
 void gsMain::play()
 {
+  if (mainloop_verbose) {
+    printf("Entering main play loop...\n");
+  }
+  
   int mode = MENU_MAIN;
 
   while (mode)
   {
+    if (mainloop_verbose) {
+      printf("Main loop iteration: mode=%d\n", mode);
+    }
+    
+    if (mainloop_verbose) {
+      printf("Creating new menu object...\n");
+    }
+    
     menu = new gsMenu();
   
+    if (mainloop_verbose) {
+      printf("Initializing menu with mode: %d\n", mode);
+    }
+    
     menu->init(mode);
+    
+    if (mainloop_verbose) {
+      printf("Menu initialized successfully, calling do_it()...\n");
+    }
+    
     mode = menu->do_it();
+    
+    if (mainloop_verbose) {
+      printf("Menu returned mode: %d\n", mode);
+    }
   
     delete(menu);
+    
+    if (mainloop_verbose && mode == 0) {
+      printf("Menu returned 0, exiting main loop\n");
+    }
 
     if (mode == MENU_1PSTATISTICS) 
     {
+      if (mainloop_verbose) {
+        printf("Starting single player level...\n");
+      }
+      
       do 
+      {
+        if (mainloop_verbose) {
+          printf("About to call do_sp_level() iteration\n");
+        }
         do_sp_level();
+        if (mainloop_verbose) {
+          printf("do_sp_level() completed, checking level_restart: %d\n", globals->level_restart);
+        }
+      }
       while(globals->level_restart);
     }  
 
     if (mode == MENU_2PSTATISTICS) 
     {
+      if (mainloop_verbose) {
+        printf("Starting two player level...\n");
+      }
+      
       do 
+      {
+        if (mainloop_verbose) {
+          printf("About to call do_level() iteration\n");
+        }
         do_level();
+        if (mainloop_verbose) {
+          printf("do_level() completed, checking level_restart: %d\n", globals->level_restart);
+        }
+      }
       while(globals->level_restart);
     }  
     
-    if (mode == MENU_NETSTATISTICS) do_network_level();
+    if (mode == MENU_NETSTATISTICS) {
+      if (mainloop_verbose) {
+        printf("Starting network level...\n");
+      }
+      
+      if (mainloop_verbose) {
+        printf("About to call do_network_level()\n");
+      }
+      do_network_level();
+      if (mainloop_verbose) {
+        printf("do_network_level() completed\n");
+      }
+    }
+    
+    if (mainloop_verbose) {
+      printf("Main loop iteration completed, mode is now: %d\n", mode);
+    }
+  }
+  
+  if (mainloop_verbose) {
+    printf("Exiting main play loop...\n");
   }
 }
 
