@@ -40,12 +40,18 @@
 #include "mnwstats.h"
 #include "mnetgini.h"
 #include "mnetgame.h"
+#include "../headless_screen.h"
 
 gsMenu     *menu;
 
 mPixelRain *mpixels = NULL;
 mBullet    *mbullets = NULL;
 mPlayer    *mplayer[2];
+
+// External declarations
+extern int mainloop_verbose;
+extern int extra_verbose2;
+extern char* headless_output_path;
 
 gsControl  *controls = NULL;
 
@@ -725,58 +731,389 @@ void gsMenu::do_logic(int fs)
 
 void gsMenu::do_graphics(int fs)
 {
-  // stars
-  stars->draw(globals->vscreen);
+  if (mainloop_verbose) {
+    printf("Rendering frame - starting graphics update...\n");
+  }
 
+  // Record the start of rendering operations
+  if (headless_output_path) {
+    HeadlessScreen* hs = HeadlessScreen::get_instance();
+    hs->push_render_scope("render_stars");
+  }
+  
+  // stars
+  if (mainloop_verbose) {
+    printf("Rendering stars...\n");
+  }
+  stars->draw(globals->vscreen);
+  
+  // Record this operation
+  if (headless_output_path) {
+    HeadlessScreen* hs = HeadlessScreen::get_instance();
+    hs->record_call("stars->draw", "sprite", globals->vscreen, 0, 0, 
+                    get_bitmap_width(globals->vscreen), get_bitmap_height(globals->vscreen),
+                    HeadlessScreen::calculate_bitmap_size(get_bitmap_width(globals->vscreen), 
+                                                         get_bitmap_height(globals->vscreen)));
+    hs->pop_render_scope(); // End stars render scope
+  }
+
+  // Record the start of player rendering
+  if (headless_output_path) {
+    HeadlessScreen* hs = HeadlessScreen::get_instance();
+    hs->push_render_scope("render_players");
+  }
+  
   // players
+  if (mainloop_verbose) {
+    printf("Rendering players...\n");
+  }
   mplayer[0]->draw(globals->vscreen);
   mplayer[1]->draw(globals->vscreen);
 
-  // title
-  RLE_SPRITE *titlebit = (RLE_SPRITE *)globals->menudat[title].dat;
-  draw_rle_sprite(globals->vscreen, titlebit, 320-(titlebit->w/2), 30);
-
-  // menu buttons
-  switch (current_menu)
-  {
-    case MENU_MAIN      : menu_main->draw(globals->vscreen); break;
-    case MENU_OPTIONS   : menu_options->draw(globals->vscreen); break;
-    case MENU_CONTROLS  : menu_controls->draw(globals->vscreen); break;
-    case MENU_2PCONTROLS: menu_2pcontrols->draw(globals->vscreen); break;
-    case MENU_SPCONTROLS: menu_spcontrols->draw(globals->vscreen); break;
-    case MENU_CHOOSESHIP: menu_chooseship->draw(globals->vscreen); break;
-    case MENU_SHIPBUILDER: menu_shipbuilder->draw(globals->vscreen); break;
-    case MENU_SINGLEPLAYER: menu_oneplayer->draw(globals->vscreen); break;
-    case MENU_SPLITSCREEN: menu_twoplayer->draw(globals->vscreen); break;
-    case MENU_MINIGAME  : menu_minigame->draw(globals->vscreen); break;
-    case MENU_NETGAMEINI: menu_netgameini->draw(globals->vscreen); break;
-    case MENU_NETGAME   : menu_netgame->draw(globals->vscreen); break;
-    case MENU_1PSTATISTICS: menu_1pstats->draw(globals->vscreen); break;
-    case MENU_2PSTATISTICS: menu_2pstats->draw(globals->vscreen); break;
-    case MENU_NETSTATISTICS: menu_netstats->draw(globals->vscreen); break;
+  // Record these operations
+  if (headless_output_path) {
+    HeadlessScreen* hs = HeadlessScreen::get_instance();
+    hs->record_call("mplayer[0]->draw", "sprite", globals->vscreen, 0, 0,
+                    get_bitmap_width(globals->vscreen), get_bitmap_height(globals->vscreen),
+                    HeadlessScreen::calculate_bitmap_size(get_bitmap_width(globals->vscreen),
+                                                         get_bitmap_height(globals->vscreen)));
+    hs->record_call("mplayer[1]->draw", "sprite", globals->vscreen, 0, 0,
+                    get_bitmap_width(globals->vscreen), get_bitmap_height(globals->vscreen),
+                    HeadlessScreen::calculate_bitmap_size(get_bitmap_width(globals->vscreen),
+                                                         get_bitmap_height(globals->vscreen)));
+    hs->pop_render_scope(); // End players render scope
   }
 
+  // Record the start of title rendering
+  if (headless_output_path) {
+    HeadlessScreen* hs = HeadlessScreen::get_instance();
+    hs->push_render_scope("render_title");
+  }
+  
+  // title
+  if (mainloop_verbose) {
+    RLE_SPRITE *titlebit = (RLE_SPRITE *)globals->menudat[title].dat;
+    printf("Rendering title at position (x: %d, y: 30) with dimensions (w: %d, h: %d)\n", 
+           320-(titlebit->w/2), titlebit->w, titlebit->h);
+  }
+  RLE_SPRITE *titlebit = (RLE_SPRITE *)globals->menudat[title].dat;
+  int title_x = 320-(titlebit->w/2);
+  draw_rle_sprite(globals->vscreen, titlebit, title_x, 30);
+
+  // Record this operation
+  if (headless_output_path) {
+    HeadlessScreen* hs = HeadlessScreen::get_instance();
+    hs->record_call("draw_rle_sprite", "title", titlebit, title_x, 30, titlebit->w, titlebit->h,
+                    HeadlessScreen::calculate_bitmap_size(titlebit->w, titlebit->h));
+    hs->pop_render_scope(); // End title render scope
+  }
+
+  // Record the start of menu rendering
+  if (headless_output_path) {
+    HeadlessScreen* hs = HeadlessScreen::get_instance();
+    hs->push_render_scope("render_menu_elements");
+  }
+  
+  // menu buttons
+  if (mainloop_verbose) {
+    printf("Rendering menu elements for current menu type: %d\n", current_menu);
+  }
+  switch (current_menu)
+  {
+    case MENU_MAIN      : 
+      if (mainloop_verbose) printf("Drawing main menu...\n"); 
+      menu_main->draw(globals->vscreen); 
+      if (headless_output_path) {
+        HeadlessScreen* hs = HeadlessScreen::get_instance();
+        hs->record_call("menu_main->draw", "menu", menu_main, 0, 0,
+                        get_bitmap_width(globals->vscreen), get_bitmap_height(globals->vscreen),
+                        HeadlessScreen::calculate_bitmap_size(get_bitmap_width(globals->vscreen),
+                                                             get_bitmap_height(globals->vscreen)));
+      }
+      break;
+    case MENU_OPTIONS   : 
+      if (mainloop_verbose) printf("Drawing options menu...\n"); 
+      menu_options->draw(globals->vscreen); 
+      if (headless_output_path) {
+        HeadlessScreen* hs = HeadlessScreen::get_instance();
+        hs->record_call("menu_options->draw", "menu", menu_options, 0, 0,
+                        get_bitmap_width(globals->vscreen), get_bitmap_height(globals->vscreen),
+                        HeadlessScreen::calculate_bitmap_size(get_bitmap_width(globals->vscreen),
+                                                             get_bitmap_height(globals->vscreen)));
+      }
+      break;
+    case MENU_CONTROLS  : 
+      if (mainloop_verbose) printf("Drawing controls menu...\n"); 
+      menu_controls->draw(globals->vscreen); 
+      if (headless_output_path) {
+        HeadlessScreen* hs = HeadlessScreen::get_instance();
+        hs->record_call("menu_controls->draw", "menu", menu_controls, 0, 0,
+                        get_bitmap_width(globals->vscreen), get_bitmap_height(globals->vscreen),
+                        HeadlessScreen::calculate_bitmap_size(get_bitmap_width(globals->vscreen),
+                                                             get_bitmap_height(globals->vscreen)));
+      }
+      break;
+    case MENU_2PCONTROLS: 
+      if (mainloop_verbose) printf("Drawing 2P controls menu...\n"); 
+      menu_2pcontrols->draw(globals->vscreen); 
+      if (headless_output_path) {
+        HeadlessScreen* hs = HeadlessScreen::get_instance();
+        hs->record_call("menu_2pcontrols->draw", "menu", menu_2pcontrols, 0, 0,
+                        get_bitmap_width(globals->vscreen), get_bitmap_height(globals->vscreen),
+                        HeadlessScreen::calculate_bitmap_size(get_bitmap_width(globals->vscreen),
+                                                             get_bitmap_height(globals->vscreen)));
+      }
+      break;
+    case MENU_SPCONTROLS: 
+      if (mainloop_verbose) printf("Drawing SP controls menu...\n"); 
+      menu_spcontrols->draw(globals->vscreen); 
+      if (headless_output_path) {
+        HeadlessScreen* hs = HeadlessScreen::get_instance();
+        hs->record_call("menu_spcontrols->draw", "menu", menu_spcontrols, 0, 0,
+                        get_bitmap_width(globals->vscreen), get_bitmap_height(globals->vscreen),
+                        HeadlessScreen::calculate_bitmap_size(get_bitmap_width(globals->vscreen),
+                                                             get_bitmap_height(globals->vscreen)));
+      }
+      break;
+    case MENU_CHOOSESHIP: 
+      if (mainloop_verbose) printf("Drawing choose ship menu...\n"); 
+      menu_chooseship->draw(globals->vscreen); 
+      if (headless_output_path) {
+        HeadlessScreen* hs = HeadlessScreen::get_instance();
+        hs->record_call("menu_chooseship->draw", "menu", menu_chooseship, 0, 0,
+                        get_bitmap_width(globals->vscreen), get_bitmap_height(globals->vscreen),
+                        HeadlessScreen::calculate_bitmap_size(get_bitmap_width(globals->vscreen),
+                                                             get_bitmap_height(globals->vscreen)));
+      }
+      break;
+    case MENU_SHIPBUILDER: 
+      if (mainloop_verbose) printf("Drawing ship builder menu...\n"); 
+      menu_shipbuilder->draw(globals->vscreen); 
+      if (headless_output_path) {
+        HeadlessScreen* hs = HeadlessScreen::get_instance();
+        hs->record_call("menu_shipbuilder->draw", "menu", menu_shipbuilder, 0, 0,
+                        get_bitmap_width(globals->vscreen), get_bitmap_height(globals->vscreen),
+                        HeadlessScreen::calculate_bitmap_size(get_bitmap_width(globals->vscreen),
+                                                             get_bitmap_height(globals->vscreen)));
+      }
+      break;
+    case MENU_SINGLEPLAYER: 
+      if (mainloop_verbose) printf("Drawing 1P menu...\n"); 
+      menu_oneplayer->draw(globals->vscreen); 
+      if (headless_output_path) {
+        HeadlessScreen* hs = HeadlessScreen::get_instance();
+        hs->record_call("menu_oneplayer->draw", "menu", menu_oneplayer, 0, 0,
+                        get_bitmap_width(globals->vscreen), get_bitmap_height(globals->vscreen),
+                        HeadlessScreen::calculate_bitmap_size(get_bitmap_width(globals->vscreen),
+                                                             get_bitmap_height(globals->vscreen)));
+      }
+      break;
+    case MENU_SPLITSCREEN: 
+      if (mainloop_verbose) printf("Drawing 2P menu...\n"); 
+      menu_twoplayer->draw(globals->vscreen); 
+      if (headless_output_path) {
+        HeadlessScreen* hs = HeadlessScreen::get_instance();
+        hs->record_call("menu_twoplayer->draw", "menu", menu_twoplayer, 0, 0,
+                        get_bitmap_width(globals->vscreen), get_bitmap_height(globals->vscreen),
+                        HeadlessScreen::calculate_bitmap_size(get_bitmap_width(globals->vscreen),
+                                                             get_bitmap_height(globals->vscreen)));
+      }
+      break;
+    case MENU_MINIGAME  : 
+      if (mainloop_verbose) printf("Drawing minigame menu...\n"); 
+      menu_minigame->draw(globals->vscreen); 
+      if (headless_output_path) {
+        HeadlessScreen* hs = HeadlessScreen::get_instance();
+        hs->record_call("menu_minigame->draw", "menu", menu_minigame, 0, 0,
+                        get_bitmap_width(globals->vscreen), get_bitmap_height(globals->vscreen),
+                        HeadlessScreen::calculate_bitmap_size(get_bitmap_width(globals->vscreen),
+                                                             get_bitmap_height(globals->vscreen)));
+      }
+      break;
+    case MENU_NETGAMEINI: 
+      if (mainloop_verbose) printf("Drawing net game init menu...\n"); 
+      menu_netgameini->draw(globals->vscreen); 
+      if (headless_output_path) {
+        HeadlessScreen* hs = HeadlessScreen::get_instance();
+        hs->record_call("menu_netgameini->draw", "menu", menu_netgameini, 0, 0,
+                        get_bitmap_width(globals->vscreen), get_bitmap_height(globals->vscreen),
+                        HeadlessScreen::calculate_bitmap_size(get_bitmap_width(globals->vscreen),
+                                                             get_bitmap_height(globals->vscreen)));
+      }
+      break;
+    case MENU_NETGAME   : 
+      if (mainloop_verbose) printf("Drawing net game menu...\n"); 
+      menu_netgame->draw(globals->vscreen); 
+      if (headless_output_path) {
+        HeadlessScreen* hs = HeadlessScreen::get_instance();
+        hs->record_call("menu_netgame->draw", "menu", menu_netgame, 0, 0,
+                        get_bitmap_width(globals->vscreen), get_bitmap_height(globals->vscreen),
+                        HeadlessScreen::calculate_bitmap_size(get_bitmap_width(globals->vscreen),
+                                                             get_bitmap_height(globals->vscreen)));
+      }
+      break;
+    case MENU_1PSTATISTICS: 
+      if (mainloop_verbose) printf("Drawing 1P stats menu...\n"); 
+      menu_1pstats->draw(globals->vscreen); 
+      if (headless_output_path) {
+        HeadlessScreen* hs = HeadlessScreen::get_instance();
+        hs->record_call("menu_1pstats->draw", "menu", menu_1pstats, 0, 0,
+                        get_bitmap_width(globals->vscreen), get_bitmap_height(globals->vscreen),
+                        HeadlessScreen::calculate_bitmap_size(get_bitmap_width(globals->vscreen),
+                                                             get_bitmap_height(globals->vscreen)));
+      }
+      break;
+    case MENU_2PSTATISTICS: 
+      if (mainloop_verbose) printf("Drawing 2P stats menu...\n"); 
+      menu_2pstats->draw(globals->vscreen); 
+      if (headless_output_path) {
+        HeadlessScreen* hs = HeadlessScreen::get_instance();
+        hs->record_call("menu_2pstats->draw", "menu", menu_2pstats, 0, 0,
+                        get_bitmap_width(globals->vscreen), get_bitmap_height(globals->vscreen),
+                        HeadlessScreen::calculate_bitmap_size(get_bitmap_width(globals->vscreen),
+                                                             get_bitmap_height(globals->vscreen)));
+      }
+      break;
+    case MENU_NETSTATISTICS: 
+      if (mainloop_verbose) printf("Drawing net stats menu...\n"); 
+      menu_netstats->draw(globals->vscreen); 
+      if (headless_output_path) {
+        HeadlessScreen* hs = HeadlessScreen::get_instance();
+        hs->record_call("menu_netstats->draw", "menu", menu_netstats, 0, 0,
+                        get_bitmap_width(globals->vscreen), get_bitmap_height(globals->vscreen),
+                        HeadlessScreen::calculate_bitmap_size(get_bitmap_width(globals->vscreen),
+                                                             get_bitmap_height(globals->vscreen)));
+      }
+      break;
+  }
+  
+  if (headless_output_path) {
+    HeadlessScreen* hs = HeadlessScreen::get_instance();
+    hs->pop_render_scope(); // End menu elements render scope
+  }
+
+  // Record the start of collision checks
+  if (headless_output_path) {
+    HeadlessScreen* hs = HeadlessScreen::get_instance();
+    hs->push_render_scope("collision_checks");
+  }
+  
   // coll checks
+  if (mainloop_verbose) {
+    printf("Checking collisions...\n");
+  }
   mpixels->check_collisions(globals->vscreen);
   mbullets->check_collisions(globals->vscreen);
 
+  // Record these operations
+  if (headless_output_path) {
+    HeadlessScreen* hs = HeadlessScreen::get_instance();
+    hs->record_call("mpixels->check_collisions", "collision", mpixels, 0, 0,
+                    get_bitmap_width(globals->vscreen), get_bitmap_height(globals->vscreen),
+                    HeadlessScreen::calculate_bitmap_size(get_bitmap_width(globals->vscreen),
+                                                         get_bitmap_height(globals->vscreen)));
+    hs->record_call("mbullets->check_collisions", "collision", mbullets, 0, 0,
+                    get_bitmap_width(globals->vscreen), get_bitmap_height(globals->vscreen),
+                    HeadlessScreen::calculate_bitmap_size(get_bitmap_width(globals->vscreen),
+                                                         get_bitmap_height(globals->vscreen)));
+    hs->pop_render_scope(); // End collision checks scope
+  }
+
+  // Record the start of pixel/bullet rendering
+  if (headless_output_path) {
+    HeadlessScreen* hs = HeadlessScreen::get_instance();
+    hs->push_render_scope("render_pixels_bullets");
+  }
+  
   // pixbulls
+  if (mainloop_verbose) {
+    printf("Rendering pixels and bullets...\n");
+  }
   mpixels->draw(globals->vscreen);
   mbullets->draw(globals->vscreen);
 
-  // crosshair (mouse)
-  draw_sprite(globals->vscreen, (BITMAP*)globals->menudat[crosshair+crosshair_count].dat, mouse_x-4, mouse_y-4);
-  clearlist->add(globals->vscreen, mouse_x-4, mouse_y-4, 8, 8);
+  // Record these operations
+  if (headless_output_path) {
+    HeadlessScreen* hs = HeadlessScreen::get_instance();
+    hs->record_call("mpixels->draw", "particles", mpixels, 0, 0,
+                    get_bitmap_width(globals->vscreen), get_bitmap_height(globals->vscreen),
+                    HeadlessScreen::calculate_bitmap_size(get_bitmap_width(globals->vscreen),
+                                                         get_bitmap_height(globals->vscreen)));
+    hs->record_call("mbullets->draw", "projectile", mbullets, 0, 0,
+                    get_bitmap_width(globals->vscreen), get_bitmap_height(globals->vscreen),
+                    HeadlessScreen::calculate_bitmap_size(get_bitmap_width(globals->vscreen),
+                                                         get_bitmap_height(globals->vscreen)));
+    hs->pop_render_scope(); // End pixels/bullets render scope
+  }
 
+  // Record the start of crosshair rendering
+  if (headless_output_path) {
+    HeadlessScreen* hs = HeadlessScreen::get_instance();
+    hs->push_render_scope("render_crosshair");
+  }
+  
+  // crosshair (mouse)
+  if (mainloop_verbose) {
+    BITMAP *crosshair_bitmap = (BITMAP*)globals->menudat[crosshair+crosshair_count].dat;
+    printf("Rendering crosshair at position (x: %d, y: %d) with dimensions (w: %d, h: %d)\n", 
+           mouse_x-4, mouse_y-4, crosshair_bitmap->w, crosshair_bitmap->h);
+  }
+  BITMAP *crosshair_bitmap = (BITMAP*)globals->menudat[crosshair+crosshair_count].dat;
+  int crosshair_x = mouse_x-4, crosshair_y = mouse_y-4;
+  draw_sprite(globals->vscreen, crosshair_bitmap, crosshair_x, crosshair_y);
+  clearlist->add(globals->vscreen, crosshair_x, crosshair_y, 8, 8);
+
+  // Record this operation
+  if (headless_output_path) {
+    HeadlessScreen* hs = HeadlessScreen::get_instance();
+    hs->record_call("draw_sprite", "crosshair", crosshair_bitmap, crosshair_x, crosshair_y,
+                    crosshair_bitmap->w, crosshair_bitmap->h,
+                    HeadlessScreen::calculate_bitmap_size(crosshair_bitmap->w, crosshair_bitmap->h));
+    hs->pop_render_scope(); // End crosshair render scope
+  }
+
+  // Record the start of player stats rendering
+  if (headless_output_path) {
+    HeadlessScreen* hs = HeadlessScreen::get_instance();
+    hs->push_render_scope("render_player_stats");
+  }
+  
   // player frags
+  if (mainloop_verbose) {
+    printf("Rendering player stats...\n");
+  }
   show_player_stats();
+
+  // Record this operation
+  if (headless_output_path) {
+    HeadlessScreen* hs = HeadlessScreen::get_instance();
+    hs->record_call("show_player_stats", "text", nullptr, 0, 0,
+                    get_bitmap_width(globals->vscreen), get_bitmap_height(globals->vscreen),
+                    HeadlessScreen::calculate_bitmap_size(get_bitmap_width(globals->vscreen),
+                                                         get_bitmap_height(globals->vscreen)));
+    hs->pop_render_scope(); // End player stats render scope
+  }
 
   if (key[KEY_F12]) make_screenshot();
 
+  // Record the screen blit operation
+  if (headless_output_path) {
+    HeadlessScreen* hs = HeadlessScreen::get_instance();
+    hs->push_render_scope("screen_blit");
+  }
+  
   // flip to visible screen
   acquire_bitmap(screen);
   if (!fs) blit(globals->vscreen, screen, 0, 0, 0, 0, 640, 480);
   release_bitmap(screen);
+
+  // Record this operation
+  if (headless_output_path) {
+    HeadlessScreen* hs = HeadlessScreen::get_instance();
+    hs->record_call("blit", "screen_flip", nullptr, 0, 0, 640, 480,
+                    HeadlessScreen::calculate_bitmap_size(640, 480));
+    hs->pop_render_scope(); // End screen blit scope
+  }
 
   // clear stuff on virtual screen
   if (!fs) clearlist->clear_screen();
@@ -785,9 +1122,16 @@ void gsMenu::do_graphics(int fs)
 int gsMenu::do_it()
 {
   globals->game_time = globals->overall_game_time = globals->second_time = 0;
+  int iteration_counter = 0;
 
   while (!(endthis))
   {
+    // Start a new iteration for headless screen
+    if (headless_output_path) {
+      HeadlessScreen* hs = HeadlessScreen::get_instance();
+      hs->start_iteration(iteration_counter++);
+    }
+
     while (globals->game_time > actual_time)
     {
       // game logic
@@ -828,6 +1172,18 @@ int gsMenu::do_it()
       globals->fps++;
     } // if update_graphics
 
+    // End the iteration for headless screen
+    if (headless_output_path) {
+      HeadlessScreen* hs = HeadlessScreen::get_instance();
+      hs->end_iteration();
+      
+      // If extra_verbose2 is enabled, dump the iteration to stderr
+      if (extra_verbose2) {
+        HeadlessScreen* hs = HeadlessScreen::get_instance();
+        std::string json_output = hs->to_json();
+        fprintf(stderr, "HeadlessScreen iteration data:\n%s\n", json_output.c_str());
+      }
+    }
   } // while !endthis
 
   return exit_mode;
@@ -842,13 +1198,29 @@ void gsMenu::show_player_stats()
   theight = text_height(f);
   text_mode(-1);
 
+  if (mainloop_verbose) {
+    printf("Rendering font at LCD (index %d) with height %d pixels\n", FONT_LCD, theight);
+  }
+
   sprintf(text1, "%d", mplayer[0]->get_frags());
   tlen = text_length(f, text1);
+  
+  if (mainloop_verbose) {
+    printf("Rendering text '%s' at position (x: 10, y: 450) with dimensions (w: %d, h: %d)\n", 
+           text1, tlen, theight);
+  }
+  
   aatextout(globals->vscreen, f, text1, 10, 450, globals->col_grey);
   clearlist->add(globals->vscreen, 10, 450, tlen, theight);
 
   sprintf(text1, "%d", mplayer[1]->get_frags());
   tlen = text_length(f, text1);
+  
+  if (mainloop_verbose) {
+    printf("Rendering text '%s' at position (x: %d, y: 450) with dimensions (w: %d, h: %d)\n", 
+           text1, 627-tlen, tlen, theight);
+  }
+  
   aatextout(globals->vscreen, f, text1, 627-tlen, 450, globals->col_grey);
   clearlist->add(globals->vscreen, 627-tlen, 450, tlen, theight);
 
@@ -865,6 +1237,12 @@ void gsMenu::show_player_stats()
     #endif
   
     f = (FONT *)globals->fontdat[FONT_IMPACT10].dat;
+    int impact_height = text_height(f);
+    
+    if (mainloop_verbose) {
+      printf("Rendering font at IMPACT10 (index %d) with height %d pixels\n", FONT_IMPACT10, impact_height);
+    }
+    
 //    tlen = text_length(f, text1);
 //    aatextout(globals->vscreen, f, text1, 50, 443, globals->col_grey);
 
@@ -872,6 +1250,12 @@ void gsMenu::show_player_stats()
     strcat(text1, "www.gravity-strike.de");
   
     tlen = text_length(f, text1);
+    
+    if (mainloop_verbose) {
+      printf("Rendering text '%s' at position (x: %d, y: 453) with dimensions (w: %d, h: %d)\n", 
+             text1, 320-tlen/2, tlen, impact_height);
+    }
+    
     aatextout(globals->vscreen, f, text1, 320-tlen/2, 453, globals->col_green);
   
     clearlist->add(globals->vscreen, 50, 440, 540, 50);

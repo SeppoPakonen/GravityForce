@@ -83,6 +83,8 @@ gslnx_SOURCES = src/cos.h \
                 src/gswaypnt.h \
                 src/luaclass.h \
                 src/main.cpp \
+                src/headless_screen.cpp \
+                src/headless_screen.h \
                 src/mappyal.c \
                 src/mappyal.h \
                 src/sin.h \

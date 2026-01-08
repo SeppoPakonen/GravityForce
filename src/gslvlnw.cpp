@@ -32,6 +32,9 @@
 #include "gsnetw.h"
 #include "allegro5_wrapper.h"
 
+// External variable for headless output path
+extern char* headless_output_path;
+
 extern RGB_MAP     rgb_table;
 extern COLOR_MAP   light_table;
 extern COLOR_MAP   trans_table;
@@ -684,12 +687,17 @@ void gsNetLevel::play()
   globals->game_time = globals->overall_game_time = globals->second_time = 0;
   globals->level_restart = 0;
 
+  int iteration_counter = 0; // For HeadlessScreen iteration tracking
+
   while (!(endthis))
   {
     while (globals->game_time > actual_time)
     {
-      // game logic
-      actual_time++;
+      // Start of iteration for HeadlessScreen
+      if (headless_output_path) {
+        HeadlessScreen* hs = HeadlessScreen::get_instance();
+        hs->start_iteration(iteration_counter);
+      }
 
       if (key[KEY_ESC] && !esc_pressed && exit_level == 0)
       {
@@ -771,6 +779,12 @@ void gsNetLevel::play()
       fade->update();
 
       update_graphics = TRUE;
+      
+      // End of logic part of iteration for HeadlessScreen
+      if (headless_output_path) {
+        HeadlessScreen* hs = HeadlessScreen::get_instance();
+        hs->push_render_scope("render");
+      }
     } // while game_time > actual_time
 
     if (update_graphics)
@@ -789,6 +803,20 @@ void gsNetLevel::play()
       update_graphics = FALSE;
 
       globals->fps++;
+      
+      // End of render scope and iteration for HeadlessScreen
+      if (headless_output_path) {
+        HeadlessScreen* hs = HeadlessScreen::get_instance();
+        hs->pop_render_scope();  // pop render scope
+        hs->end_iteration();
+        iteration_counter++;
+        
+        // For -v3 flag, also dump to stderr
+        extern int extra_verbose2;
+        if (extra_verbose2) {
+          fprintf(stderr, "%s\n", hs->to_json().c_str());
+        }
+      }
     } // if update_graphics
 
   } // while !endthis

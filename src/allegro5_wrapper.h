@@ -533,4 +533,6 @@ extern "C" {
     void MapDrawParallax(BITMAP *bmp, BITMAP *pbmp, int xo, int yo, int x, int y, int w, int h);
 } // extern "C"
 
+#include "headless_screen.h"
+
 #endif // ALLEGRO5_WRAPPER_H

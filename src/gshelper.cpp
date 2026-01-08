@@ -19,6 +19,7 @@
 #include "gsplayer.h"
 #include "gsmap.h"
 #include "gsglob.h"
+#include "gsglob.h"
 #include "gserror.h"
 #include <stdio.h>
 #include <math.h>
@@ -403,6 +404,10 @@ void mytextout_center(BITMAP *v, FONT *f, char *s, int x1, int x2, int y, int co
 
   if (tlen < len)
   {
+    if (mainloop_verbose) {
+      printf("Rendering centered text '%s' at position (x: %d, y: %d) with dimensions (w: %d, h: %d)\n", 
+             s, x1+len/2-tlen/2, y, tlen, theight);
+    }
     aatextout(v, f, s, x1+len/2-tlen/2, y, col);
     if (cl) clearlist->add(v, x1+len/2-tlen/2, y, tlen, theight);
   }
@@ -435,6 +440,10 @@ void mytextout_center(BITMAP *v, FONT *f, char *s, int x1, int x2, int y, int co
       slen -= strlen(line);
 
       tlen = text_length(f, line);
+      if (mainloop_verbose) {
+        printf("Rendering multi-line centered text '%s' at position (x: %d, y: %d) with dimensions (w: %d, h: %d)\n", 
+               line, x1+len/2-tlen/2, y+theight*l+l, tlen, theight);
+      }
       aatextout(v, f, line, x1+len/2-tlen/2, y+theight*l+l, col);
       if (cl) clearlist->add(v, x1+len/2-tlen/2, y+theight*l+l, tlen, theight);
 
@@ -454,6 +463,10 @@ void mytextout_left(BITMAP *v, FONT *f, char *s, int x1, int x2, int y, int col,
 
   if (tlen < len)
   {
+    if (mainloop_verbose) {
+      printf("Rendering left-aligned text '%s' at position (x: %d, y: %d) with dimensions (w: %d, h: %d)\n", 
+             s, x1, y, tlen, theight);
+    }
     aatextout(v, f, s, x1, y, col);
     if (cl) clearlist->add(v, x1, y, tlen, theight);
   }
@@ -486,6 +499,10 @@ void mytextout_left(BITMAP *v, FONT *f, char *s, int x1, int x2, int y, int col,
       slen -= strlen(line);
 
       tlen = text_length(f, line);
+      if (mainloop_verbose) {
+        printf("Rendering multi-line left-aligned text '%s' at position (x: %d, y: %d) with dimensions (w: %d, h: %d)\n", 
+               line, x1, y+theight*l+l, tlen, theight);
+      }
       aatextout(v, f, line, x1, y+theight*l+l, col);
       if (cl) clearlist->add(v, x1, y+theight*l+l, tlen, theight);
 

@@ -40,6 +40,13 @@
 #include "menu/gsmenu.h"
 #include "contrib/md5class.h"
 #include "gsscript.h"
+#include "headless_screen.h"
+
+// Import verbose flags from main.cpp
+extern int verbose;
+extern int extra_verbose;
+extern int extra_verbose2;
+extern char* headless_output_path;
 
 // Import verbose flags from main.cpp
 extern int verbose;

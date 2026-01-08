@@ -296,6 +296,11 @@ void mOptions::draw(BITMAP *v)
   FONT *f = (FONT*)globals->fontdat[FONT_IMPACT10].dat;
   int tlen = text_length(f, text);
 
+  if (mainloop_verbose) {
+    int font_height = text_height(f);
+    printf("Rendering language text '%s' at position (x: %d, y: %d) with dimensions (w: %d, h: %d)\n", 
+           text, x+w/2-tlen/2, y+h/2-font_height/2, tlen, font_height);
+  }
   aatextout(v, f, text, x+w/2-tlen/2, y+h/2-text_height(f)/2, button[M_OPTIONS_LANGUAGE]->get_color2());
 
 
@@ -310,6 +315,11 @@ void mOptions::draw(BITMAP *v)
   f = (FONT*)globals->fontdat[FONT_IMPACT10].dat;
   tlen = text_length(f, rtext);
 
+  if (mainloop_verbose) {
+    int font_height = text_height(f);
+    printf("Rendering resolution text '%s' at position (x: %d, y: %d) with dimensions (w: %d, h: %d)\n", 
+           rtext, x+w/2-tlen/2, y+h/2-font_height/2, tlen, font_height);
+  }
   aatextout(v, f, rtext, x+w/2-tlen/2, y+h/2-text_height(f)/2, button[M_OPTIONS_RESOLUTION]->get_color2());
 
 /*

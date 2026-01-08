@@ -7,12 +7,16 @@
 #include "gsmain.h"
 #include "gsglob.h"
 
+#include "headless_screen.h"
+
 int gfxdriver = GFX_AUTODETECT;
 int debuglevel = 0;
 int noclip = 0;
 int nocrcmessage = 0;
 int verbose = 0;  // Added verbose flag
 int extra_verbose = 0;  // Added extra verbose flag
+int extra_verbose2 = 0; // Added extra verbose 2 flag for headless output
+char* headless_output_path = nullptr; // Path for headless screen output
 // mainloop_verbose is defined in gsglob.cpp
 
 
@@ -43,6 +47,13 @@ void parse_cmd_line(int argc, char *argv[])
       extra_verbose = 1;
     if (!strcmp(argv[n], "-v3") || !strcmp(argv[n], "--mainloop-verbose")) {
       mainloop_verbose = 1;
+    }
+    if (!strcmp(argv[n], "-v4") || !strcmp(argv[n], "--extra-verbose-2")) {
+      extra_verbose2 = 1;
+    }
+    if ((!strcmp(argv[n], "-vo") || !strcmp(argv[n], "--headless-output")) && n + 1 < argc) {
+      headless_output_path = argv[n + 1];
+      n++; // Skip the next argument since we're using it as the path
     }
 
     #ifdef ALLEGRO_LINUX
@@ -77,6 +88,20 @@ int main(int argc, char *argv[])
     printf("Main loop verbose output enabled (-v3 flag)\n");
   }
 
+  // Initialize HeadlessScreen if output path is specified
+  if (headless_output_path) {
+    HeadlessScreen* hs = HeadlessScreen::get_instance();
+    hs->init(headless_output_path);
+    printf("HeadlessScreen initialized with output path: %s\n", headless_output_path);
+    
+    // Also enable mainloop verbose when headless output is enabled
+    mainloop_verbose = 1;
+  }
+
+  if (extra_verbose2) {
+    printf("Extra verbose 2 enabled (-v4 flag)\n");
+  }
+
   // main game object
   printf("Creating gsMain object...\n");
   fflush(stdout);
@@ -99,6 +124,12 @@ int main(int argc, char *argv[])
     printf("Starting game loop...\n");
     fflush(stdout);
     gs_main->play();
+    
+    // Flush headless screen output if it was enabled
+    if (headless_output_path) {
+      HeadlessScreen* hs = HeadlessScreen::get_instance();
+      hs->flush_output();
+    }
   }
   else
   {
